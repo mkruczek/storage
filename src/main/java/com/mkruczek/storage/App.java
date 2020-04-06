@@ -4,10 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class StorageApiApplication {
+public class App {
 
 	public static void main(String[] args) {
-		SpringApplication.run(StorageApiApplication.class, args);
+		SpringApplication.run(App.class, args);
 	}
-
 }
