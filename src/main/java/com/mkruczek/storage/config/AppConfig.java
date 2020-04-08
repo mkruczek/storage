@@ -13,4 +13,15 @@ public class AppConfig {
     @Value("${local.storage.path}")
     private String localStoragePath;
 
+    @Value("${google.bucket.name}")
+    private String bucketName;
+
+    @Value("${google.credentials.path}")
+    private String googleCredentialsPath;
+
+    @Value("${local.temporary.path}")
+    private String tmpLocalPath;
+
+    @Value("${google.project}")
+    private String googleProject;
 }

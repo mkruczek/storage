@@ -1,5 +1,6 @@
 package com.mkruczek.storage.model;
 
+import com.mkruczek.storage.exception.exceptions.ProviderNotFoundException;
 import lombok.Builder;
 import lombok.Data;
 import lombok.ToString;
@@ -16,7 +17,7 @@ public class StorageDto {
 
     public UUID id;
     public String name;
-    public String path;
+    public String storagePath;
     public String contentType;
     public LocalDateTime storageDate;
 
@@ -24,34 +25,32 @@ public class StorageDto {
         return StorageDto.builder()
                 .id(entity.getId())
                 .name(entity.getName())
-                .path(entity.getPath())
+                .storagePath(entity.getPath())
                 .contentType(entity.getContentType())
                 .storageDate(entity.getStorageDate())
                 .build();
     }
 
-    public Resource toResource(){
-        return new FileSystemResource(this.path);
+    public Resource toResource() {
+        return new FileSystemResource(this.valueOfPath());
     }
 
+    public String valueOfPath() {
+        return this.storagePath.split("::")[1];
+    }
 
-//    public static void main(String[] args) {
-//
-//        StorageDto heniek = StorageDto.builder()
-//                .id(UUID.randomUUID())
-//                .name("heniek")
-//                .build();
-//
-//        doMagic(heniek);
-//
-//
-//        System.out.println(heniek);
-//
-//
-//
-//    }
-//
-//    private static void doMagic(StorageDto dto){
-//        dto.setName("kurwa mac");
-//    }
+    public String getProvider() {
+        return this.storagePath.split("::")[0];
+    }
+
+    public static String createStoragePath(String provider, String path, String name) {
+        switch (provider) {
+            case "local":
+                return provider + "::" + path + "/" + name;
+            case "google":
+                return provider + "::" + name;
+            default:
+                throw new ProviderNotFoundException(provider);
+        }
+    }
 }

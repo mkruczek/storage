@@ -2,7 +2,9 @@ package com.mkruczek.storage.model;
 
 import com.mkruczek.storage.config.AppConfig;
 import com.mkruczek.storage.exception.exceptions.FailedSaveResourceException;
+import com.mkruczek.storage.exception.exceptions.ProviderNotFoundException;
 import com.mkruczek.storage.exception.exceptions.ResourceNotFoundException;
+import com.mkruczek.storage.provider.google.GoogleService;
 import com.mkruczek.storage.provider.local.LocalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,33 +27,45 @@ public class StorageService {
     AppConfig config;
     StorageRepository repository;
     LocalService localService;
+    GoogleService googleService;
 
     @Autowired
-    public StorageService(AppConfig config, StorageRepository repository, LocalService localService) {
+    public StorageService(AppConfig config, StorageRepository repository, LocalService localService, GoogleService googleService) {
         this.config = config;
         this.repository = repository;
         this.localService = localService;
+        this.googleService = googleService;
     }
 
     @Transactional
-    public StorageDto saveResource(MultipartFile file) {
-        String filePath = config.getLocalStoragePath() + "/" + file.getOriginalFilename();
+    public StorageDto saveResource(String provider, MultipartFile file) {
+        String storagePath = StorageDto.createStoragePath(provider, config.getLocalStoragePath(), file.getOriginalFilename());
+
         try {
-            StorageEntity save = repository.save(StorageEntity.builder()
-                    .id(UUID.randomUUID())
-                    .name(file.getOriginalFilename())
-                    .path(filePath)
-                    .contentType(file.getContentType())
-                    .storageDate(LocalDateTime.now())
-                    .build());
+            StorageDto save = StorageDto.fromEntity(
+                    repository.save(StorageEntity.builder()
+                            .id(UUID.randomUUID())
+                            .name(file.getOriginalFilename())
+                            .path(storagePath)
+                            .contentType(file.getContentType())
+                            .storageDate(LocalDateTime.now())
+                            .build()));
 
-            localService.saveResource(filePath, file);
-
-            return StorageDto.fromEntity(save);
+            switch (provider) {
+                case "local":
+                    localService.saveResource(save.valueOfPath(), file);
+                    break;
+                case "google":
+                    googleService.uploadResources(file);
+                    break;
+                default:
+                    throw new ProviderNotFoundException(provider);
+            }
+            return save;
 
         } catch (IOException ex) {
-            logger.error("Failed to save for : " + filePath, ex);
-            throw new FailedSaveResourceException("Failed to save for : " + filePath);
+            logger.error("Failed to save for : " + storagePath, ex);
+            throw new FailedSaveResourceException("Failed to save for : " + storagePath);
         }
     }
 
@@ -60,6 +74,15 @@ public class StorageService {
     }
 
     public StorageDto getResource(UUID id) {
-      return repository.findById(id).map(StorageDto::fromEntity).orElseThrow(() -> new ResourceNotFoundException("Not found resource for id: "+ id));
+        StorageDto storageDto = repository.findById(id).map(StorageDto::fromEntity).orElseThrow(() -> new ResourceNotFoundException("Not found resource for id: " + id));
+
+        switch (storageDto.getProvider()) {
+            case "local":
+                return storageDto;
+            case "google":
+                return googleService.downloadResources(storageDto);
+            default:
+                throw new ProviderNotFoundException(storageDto.getProvider());
+        }
     }
 }
