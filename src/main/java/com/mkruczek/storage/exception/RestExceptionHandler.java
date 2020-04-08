@@ -1,7 +1,9 @@
 package com.mkruczek.storage.exception;
 
 import com.mkruczek.storage.exception.exceptions.AddressNotFoundException;
+import com.mkruczek.storage.exception.exceptions.FailedDownloadResourceException;
 import com.mkruczek.storage.exception.exceptions.FailedSaveResourceException;
+import com.mkruczek.storage.exception.exceptions.ProviderNotFoundException;
 import com.mkruczek.storage.exception.exceptions.ResourceNotFoundException;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.http.HttpHeaders;
@@ -49,5 +51,22 @@ public class RestExceptionHandler {
         return new ResponseEntity<ExceptionResponse>(er, new HttpHeaders(), HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
+    @ExceptionHandler(value = ProviderNotFoundException.class)
+    public ResponseEntity<ExceptionResponse> handleProviderNotFoundException(Exception ex) {
+        ExceptionResponse er = ExceptionResponse.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message(ex.getMessage())
+                .build();
+        return new ResponseEntity<ExceptionResponse>(er, new HttpHeaders(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = FailedDownloadResourceException.class)
+    public ResponseEntity<ExceptionResponse> handleFailedDownloadResourceException(Exception ex) {
+        ExceptionResponse er = ExceptionResponse.builder()
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message(ex.getMessage())
+                .build();
+        return new ResponseEntity<ExceptionResponse>(er, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 
 }
